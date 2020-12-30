@@ -69,11 +69,13 @@ import javax.inject.Singleton;
 
 import static com.aws.greengrass.componentmanager.KernelConfigResolver.VERSION_CONFIG_KEY;
 import static com.aws.greengrass.dependency.EZPlugins.JAR_FILE_EXTENSION;
+import static com.aws.greengrass.deployment.DeviceConfiguration.GGC_VERSION_ENV;
 import static com.aws.greengrass.deployment.bootstrap.BootstrapSuccessCode.REQUEST_REBOOT;
 import static com.aws.greengrass.deployment.bootstrap.BootstrapSuccessCode.REQUEST_RESTART;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.SERVICES_NAMESPACE_TOPIC;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.SERVICE_DEPENDENCIES_NAMESPACE_TOPIC;
 import static com.aws.greengrass.lifecyclemanager.GreengrassService.SERVICE_LIFECYCLE_NAMESPACE_TOPIC;
+import static com.aws.greengrass.lifecyclemanager.GreengrassService.SETENV_CONFIG_NAMESPACE;
 import static com.aws.greengrass.lifecyclemanager.KernelCommandLine.MAIN_SERVICE_NAME;
 
 /**
@@ -604,8 +606,14 @@ public class Kernel {
         }
 
         // Update device configuration from commandline arguments after loading config files
-        kernelCommandLine.updateDeviceConfiguration(getContext().get(DeviceConfiguration.class));
+        DeviceConfiguration deviceConfiguration = getContext().get(DeviceConfiguration.class);
+        kernelCommandLine.updateDeviceConfiguration(deviceConfiguration);
+        // After configuration is fully loaded, initialize Nucleus service config
+        deviceConfiguration.initializedNucleusFromRecipe(kernelAlts);
+        getConfig().lookup(SETENV_CONFIG_NAMESPACE, GGC_VERSION_ENV).withValue(deviceConfiguration.getNucleusVersion());
+
         setupProxy();
+
         return this;
     }
 
